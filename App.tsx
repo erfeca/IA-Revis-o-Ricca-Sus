@@ -12,8 +12,10 @@ import {
   Download,
   Check,
   History,
-  MapPin
+  MapPin,
+  FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { extractTextFromPdf } from './services/pdfService';
 import { reviewTextWithGemini } from './services/geminiService';
 import { FileData, AppStatus, ReviewResult } from './types';
@@ -104,6 +106,30 @@ const App: React.FC = () => {
     a.click();
   };
 
+  const exportToExcel = () => {
+    if (!result || !result.corrections) return;
+
+    const data = result.corrections.map(corr => ({
+      'Tipo de Erro': corr.type === 'orthography' ? 'Ortografia' :
+                      corr.type === 'grammar' ? 'Gramática' :
+                      corr.type === 'style' ? 'Estilo' : 'Pontuação',
+      'Página': corr.pageNumber,
+      'Texto Original (De)': corr.original,
+      'Texto Sugerido (Para)': corr.corrected,
+      'Explicação': corr.explanation
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Revisão Detalhada");
+
+    // Ajuste de largura de colunas (aproximado)
+    const maxWidths = [15, 10, 40, 40, 60];
+    worksheet['!cols'] = maxWidths.map(w => ({ wch: w }));
+
+    XLSX.writeFile(workbook, `analise_revisao_${targetFile?.name.replace('.pdf', '')}.xlsx`);
+  };
+
   return (
     <div className="min-h-screen pb-20">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -134,7 +160,7 @@ const App: React.FC = () => {
               Revisão Gramatical de Elite com IA
             </h2>
             <p className="text-slate-600 text-lg">
-              Envie seu PDF e documentos de referência. O sistema indicará a página exata de cada erro.
+              Envie seu PDF e documentos de referência. O sistema indicará a página exata e permitirá exportação para Excel.
             </p>
           </div>
         )}
@@ -233,6 +259,7 @@ const App: React.FC = () => {
               <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center text-slate-400">
                 <History className="w-16 h-16 mb-4 opacity-20" />
                 <p className="text-lg font-medium">Os resultados com número de página aparecerão aqui</p>
+                <p className="text-sm mt-2 italic">A exportação para Excel incluirá tipo de erro, página e detalhes comparativos.</p>
               </div>
             )}
 
@@ -262,14 +289,26 @@ const App: React.FC = () => {
                       {result.score}
                     </div>
                     <div>
-                      <h4 className="text-slate-900 font-bold text-lg">Qualidade do Documento</h4>
-                      <p className="text-slate-500 text-sm">{result.corrections.length} pontos de melhoria identificados.</p>
+                      <h4 className="text-slate-900 font-bold text-lg">Qualidade Geral</h4>
+                      <p className="text-slate-500 text-sm">{result.corrections.length} pontos de atenção.</p>
                     </div>
                   </div>
-                  <button onClick={downloadResult} className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl hover:bg-slate-800 transition-colors font-medium">
-                    <Download className="w-4 h-4" />
-                    Baixar Texto Limpo
-                  </button>
+                  <div className="flex flex-wrap gap-3">
+                    <button 
+                      onClick={exportToExcel} 
+                      className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-xl hover:bg-emerald-700 transition-colors font-medium shadow-sm"
+                    >
+                      <FileSpreadsheet className="w-4 h-4" />
+                      Exportar Excel
+                    </button>
+                    <button 
+                      onClick={downloadResult} 
+                      className="flex items-center gap-2 bg-slate-900 text-white px-5 py-3 rounded-xl hover:bg-slate-800 transition-colors font-medium shadow-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      Baixar Texto
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -283,7 +322,10 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="font-bold text-slate-900 text-xl px-2">Análise por Página</h3>
+                  <h3 className="font-bold text-slate-900 text-xl px-2 flex items-center gap-2">
+                    <History className="w-5 h-5 text-blue-600" />
+                    Relatório de Alterações
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {result.corrections.map((corr, idx) => (
                       <div key={idx} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">

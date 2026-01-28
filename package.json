@@ -1,5 +1,5 @@
 {
-  "name": "copy-of-revisor-pro-ai",
+  "name": "revisor-ai-ricca-sus",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,7 +12,8 @@
     "@google/genai": "^1.38.0",
     "react-dom": "^19.2.4",
     "react": "^19.2.4",
-    "lucide-react": "^0.563.0"
+    "lucide-react": "^0.563.0",
+    "xlsx": "0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
